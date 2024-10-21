@@ -99,10 +99,13 @@ module.exports = {
                 err.status = 400;
                 next(err);
             }
+
             res.json({
                 success: true,
                 message: "Uploaded success",
-                url: `http://${process.env.APP_HOST}:${process.env.APP_PORT}/${process.env.MULTER_UPLOAD_FILE_DESTINATION}/${req.params[`type`]}/${req.file.filename}`,
+                url: process.env.APP_MODE === "dev" ? `http://${process.env.APP_HOST}:${process.env.APP_PORT}/${process.env.MULTER_UPLOAD_FILE_DESTINATION}/${req.params[`type`]}/${req.file.filename}` :
+                    `https://${process.env.APP_SERVER_HOST}/${process.env.MULTER_UPLOAD_FILE_DESTINATION}/${req.params[`type`]}/${req.file.filename}`
+                ,
             });
         } catch (error) {
             next(new Error(error));
