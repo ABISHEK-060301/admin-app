@@ -1,12 +1,25 @@
 const { compareSync } = require("bcrypt");
 const encryptPassword = require("../../helpers/encrypt-passort");
-const { getUsersByUserId, deleteUserByUserId, createNewUser, updateUserByUserId, getUserByEmail, getAllUsers } = require("../../services/users/users-service");
+const { getUsersByUserId, deleteUserByUserId, createNewUser, updateUserByUserId, getUserByEmail, getAllUsers, getAllUsersByAdmin } = require("../../services/users/users-service");
 const { sign } = require("jsonwebtoken");
 
 module.exports = {
     getUsers: async (_, res, next) => {
         try {
             const result = await getAllUsers();
+            res.json({
+                success: true,
+                message: 'Users List fetched success',
+                data: result
+            })
+        } catch (error) {
+            next(new Error(error))
+        }
+    },
+
+    getUsersByAdminId: async (req, res, next) => {
+        try {
+            const result = await getAllUsersByAdmin(req.decoded.id);
             res.json({
                 success: true,
                 message: 'Users List fetched success',
