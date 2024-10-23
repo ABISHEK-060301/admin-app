@@ -35,7 +35,7 @@ module.exports = {
             const result = await getUsersByUserId(req.params.id);
             res.json({
                 success: true,
-                message: 'Users List fetched success',
+                message: 'User fetched success',
                 data: result
             })
         } catch (error) {

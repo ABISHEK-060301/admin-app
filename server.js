@@ -5,6 +5,7 @@ const app = express();
 const multer = require('multer')
 const fs = require('fs')
 const path = require('path');
+const bucket = require("./config/firebaseConfig");
 
 // Express middleware
 app.use(express.urlencoded({ extended: true }));
@@ -18,55 +19,61 @@ const { imgUploads } = require('./controller/admin/admin-controller');
 const adminRouter = require('./router/admin/admin-router')
 const usersRouter = require('./router/users/users-router')
 const { countries, states, cities } = require('./helpers/world API/world-service');
-const authToken = require('./middlewares/authToken');
 
-let upload = multer({
-    storage: multer.diskStorage({
-        destination: (req, file, callback) => {
-
-            let type = req.params.type;
-
-            let path = `${__dirname}/uploads/${type}`;
-            if (!fs.existsSync(path)) {
-                fs.access(`${__dirname}/uploads/${type}`, (error) => {
-                    if (error) {
-                        console.log("Access Err", error);
-                    } else {
-                        fs.mkdir(path, { recursive: true }, (err) => {
-                            if (err) {
-                                console.log("mkdir Err", error);
-                            } else {
-                                callback(null, path);
-                            }
-                        })
-                    }
-                })
-            } else {
-                callback(null, path);
-            }
-        },
-        filename: (req, file, callback) => {
-            callback(null, `img-${Date.now()}.${file.originalname}`);
-        }
-    })
+const upload = multer({
+    storage: multer.memoryStorage(), // Store files in memory before uploading to Firebase
 });
-
-// static folder
-app.use(`/uploads`, express.static(`uploads`))
 
 app.use('/api/v1/admin', adminRouter)  // Admin router
 app.use('/api/v1/users', usersRouter)  // User router
 
-app.post('/image/uploads/:type', authToken,
-    //      (req, res, next) => {
-    //     let token = req.headers[`authorization`];
-    //     console.log("token", token);
-    //     token = token.split(' ')[1];
-    //     const decoded = jwtDecode(token);
-    //     console.log(decoded);
-    //     next();
-    // }, 
-    upload.single("file"), imgUploads)
+app.post("/image/uploads", upload.single("file"), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: "No file uploaded." });
+        }
+
+        const image = req.file;
+
+        // Create a unique filename for the uploaded image
+        const fileName = `${Date.now()}_${image.originalname}`;
+
+        // Upload the file to Firebase Storage
+        const file = bucket.file(fileName);
+
+        // Create a stream and pipe the image buffer to Firebase Storage
+        const stream = file.createWriteStream({
+            metadata: {
+                contentType: image.mimetype, // Image MIME type
+            },
+        });
+
+        // Pipe the buffer from multer to Firebase Storage
+        stream.end(image.buffer);
+
+        // Listen for the 'finish' event to get the public URL
+        stream.on("finish", async () => {
+            // Make the file publicly accessible
+            await file.makePublic();
+
+            // Get the public URL of the file
+            const publicUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+
+            return res.status(200).json({
+                success: true,
+                message: "File uploaded successfully.",
+                url: publicUrl,
+            });
+        });
+
+        stream.on("error", (error) => {
+            console.error("Error uploading file:", error);
+            return res.status(500).json({ error: "Error uploading file." });
+        });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+});
 
 // Home Router
 app.get('/', (req, res, next) => {
