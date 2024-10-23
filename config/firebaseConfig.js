@@ -1,11 +1,14 @@
 // firebase-config.js
 
 const admin = require("firebase-admin");
-const serviceAccount = require("../admin-app-883ca-firebase-adminsdk-ojgqr-8524a9aae9.json");
-
+const serviceAccount = {
+    "project_id": process.env.FIREBASE_PROJECT_ID,
+    "private_key": process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    "client_email": process.env.FIREBASE_CLIENT_EMAIL,
+}
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    storageBucket: "gs://admin-app-883ca.appspot.com", // Replace with your bucket name
+    storageBucket: process.env.FIREBASE_BUCKET_NAME, // Replace with your bucket name
 });
 
 const bucket = admin.storage().bucket();

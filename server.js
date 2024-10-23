@@ -67,7 +67,7 @@ app.post("/image/uploads", upload.single("file"), async (req, res) => {
         });
 
         stream.on("error", (error) => {
-            console.error("Error uploading file:", error);
+            console.error("Error uploading file:", error.message);
             return res.status(500).json({ error: "Error uploading file." });
         });
     } catch (error) {
